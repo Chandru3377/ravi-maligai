@@ -1,6 +1,6 @@
-import axios from "axios";
 import { useEffect, useState } from "react";
 import socket from "../socket";
+import { dashboard } from "../api";
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -12,10 +12,10 @@ export default function Dashboard() {
 
   const load = async () => {
     try {
-      const { data } = await axios.get("/api/dashboard/stats");
+      const data = await dashboard.getStats();
       setStats(data);
     } catch (e) {
-      console.error(e);
+      console.error("Failed to load dashboard stats:", e);
     } finally {
       setLoading(false);
     }

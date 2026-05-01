@@ -1,7 +1,7 @@
-import axios from "axios";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import socket from "../socket";
+import { sales as salesAPI } from "../api";
 
 export default function SalesHistory() {
   const [sales, setSales] = useState([]);
@@ -14,12 +14,10 @@ export default function SalesHistory() {
   const loadSales = async () => {
     setLoading(true);
     try {
-      const res = await axios.get("/api/sales/history", {
-        params: { q: query, from, to },
-      });
-      setSales(res.data);
+      const data = await salesAPI.getHistory(query, from, to);
+      setSales(data);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to load sales:", err);
       alert("Failed to load sales");
     } finally {
       setLoading(false);

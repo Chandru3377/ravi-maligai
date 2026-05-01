@@ -1,6 +1,6 @@
-import axios from "axios";
 import { useEffect, useState } from "react";
 import socket from "../socket";
+import { products as productsAPI, cart as cartAPI, invoices as invoicesAPI } from "../api";
 
 // -------- Cart Row Component --------
 function CartRow({ item, onChange, onRemove }) {
@@ -44,8 +44,12 @@ export default function Billing() {
   });
 
   const loadProducts = async () => {
-    const { data } = await axios.get("/api/products");
-    setProducts(data);
+    try {
+      const data = await productsAPI.getAll();
+      setProducts(data);
+    } catch (err) {
+      console.error("Failed to load products:", err);
+    }
   };
 
   useEffect(() => {
@@ -102,15 +106,12 @@ export default function Billing() {
     if (!cart.length) return alert("Cart is empty!");
     try {
       const items = cart.map((c) => ({ productId: c.productId, qty: c.qty }));
-      const res = await axios.post("/api/cart/checkout", { items, customer });
-      const { invoiceId, invoiceNo } = res.data;
+      const checkoutResult = await cartAPI.checkout(items, customer);
+      const { invoiceId, invoiceNo } = checkoutResult;
 
       // Download invoice PDF
-      const pdfResp = await axios.get(`/api/invoices/${invoiceId}/pdf`, {
-        responseType: "blob",
-      });
-      const blob = new Blob([pdfResp.data], { type: "application/pdf" });
-      const url = window.URL.createObjectURL(blob);
+      const pdfBlob = await invoicesAPI.getPDF(invoiceId);
+      const url = window.URL.createObjectURL(pdfBlob);
       const a = document.createElement("a");
       a.href = url;
       a.download = `${invoiceNo}.pdf`;
@@ -123,7 +124,7 @@ export default function Billing() {
       setCustomer({ name: "", phone: "", address: "" });
       alert("✅ Checkout successful! Invoice downloaded.");
     } catch (err) {
-      alert(err.response?.data?.error || err.message || "Checkout failed");
+      alert(err.message || "Checkout failed");
     }
   };
 

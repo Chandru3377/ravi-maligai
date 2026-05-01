@@ -1,6 +1,6 @@
-import axios from "axios";
 import { useEffect, useState } from "react";
 import socket from "../socket";
+import { products as productsAPI } from "../api";
 
 // ---------- Product Form ----------
 function ProductForm({ onSaved, edit }) {
@@ -35,8 +35,11 @@ function ProductForm({ onSaved, edit }) {
   const submit = async (e) => {
     e.preventDefault();
     try {
-      if (edit && edit._id) await axios.put(`/api/products/${edit._id}`, form);
-      else await axios.post("/api/products", form);
+      if (edit && edit._id) {
+        await productsAPI.update(edit._id, form);
+      } else {
+        await productsAPI.create(form);
+      }
       onSaved();
       setForm({
         name: "",
@@ -48,7 +51,7 @@ function ProductForm({ onSaved, edit }) {
         reorderLevel: 5,
       });
     } catch (err) {
-      alert(err.response?.data?.error || err.message);
+      alert(err.message || "Failed to save product");
     }
   };
 
@@ -137,8 +140,12 @@ export default function Products() {
   const [editing, setEditing] = useState(null);
 
   const load = async () => {
-    const { data } = await axios.get("/api/products");
-    setProducts(data);
+    try {
+      const data = await productsAPI.getAll();
+      setProducts(data);
+    } catch (err) {
+      console.error("Failed to load products:", err);
+    }
   };
 
   useEffect(() => {
@@ -161,8 +168,12 @@ export default function Products() {
 
   const remove = async (id) => {
     if (!window.confirm("Delete product?")) return;
-    await axios.delete(`/api/products/${id}`);
-    load();
+    try {
+      await productsAPI.delete(id);
+      load();
+    } catch (err) {
+      alert(err.message || "Failed to delete product");
+    }
   };
 
   return (
